@@ -7,7 +7,6 @@ from typing_extensions import Protocol
 
 from . import operators
 from .tensor_data import (
-    MAX_DIMS,
     broadcast_index,
     index_to_position,
     shape_broadcast,
@@ -16,7 +15,7 @@ from .tensor_data import (
 
 if TYPE_CHECKING:
     from .tensor import Tensor
-    from .tensor_data import Index, Shape, Storage, Strides
+    from .tensor_data import Shape, Storage, Strides
 
 
 class MapProto(Protocol):
@@ -41,7 +40,9 @@ class TensorOps:
     @staticmethod
     def reduce(
         fn: Callable[[float, float], float], start: float = 0.0
-    ) -> Callable[[Tensor, int], Tensor]: ...
+    ) -> Callable[[Tensor, int], Tensor]:
+        """Reduce placeholder"""
+        ...
 
     @staticmethod
     def matrix_multiply(a: Tensor, b: Tensor) -> Tensor:
@@ -57,10 +58,12 @@ class TensorBackend:
         that implements map, zip, and reduce higher-order functions.
 
         Args:
+        ----
             ops : tensor operations object see `tensor_ops.py`
 
 
         Returns:
+        -------
             A collection of tensor functions
 
         """
@@ -112,12 +115,14 @@ class SimpleOps(TensorOps):
                     out[i, j] = fn(a[i, 0])
 
         Args:
+        ----
             fn: function from float-to-float to apply.
             a (:class:`TensorData`): tensor to map over
             out (:class:`TensorData`): optional, tensor data to fill in,
                    should broadcast with `a`
 
         Returns:
+        -------
             new tensor data
 
         """
@@ -154,11 +159,13 @@ class SimpleOps(TensorOps):
 
 
         Args:
+        ----
             fn: function from two floats-to-float to apply
             a (:class:`TensorData`): tensor to zip over
             b (:class:`TensorData`): tensor to zip over
 
         Returns:
+        -------
             :class:`TensorData` : new tensor data
 
         """
@@ -179,26 +186,35 @@ class SimpleOps(TensorOps):
     def reduce(
         fn: Callable[[float, float], float], start: float = 0.0
     ) -> Callable[["Tensor", int], "Tensor"]:
-        """Higher-order tensor reduce function. ::
+        """Higher-order tensor reduce function ::
 
-          fn_reduce = reduce(fn)
+          fn_reduce = reduce(fn, start)
           out = fn_reduce(a, dim)
 
         Simple version ::
 
-            for j:
-                out[1, j] = start
-                for i:
-                    out[1, j] = fn(out[1, j], a[i, j])
+            for i:
+                out[i] = start
+                for j:
+                    out[i] = fn(out[i], a[i, j])
 
+        Broadcasted version (`a` might be smaller than `out`) ::
+
+            for i:
+                out[i] = start
+                for j:
+                    out[i] = fn(out[i], a[i, 0])
 
         Args:
+        ----
             fn: function from two floats-to-float to apply
+            start: starting value for reduction
             a (:class:`TensorData`): tensor to reduce over
-            dim (int): int of dim to reduce
+            dim: dimension to reduce over
 
         Returns:
-            :class:`TensorData` : new tensor
+        -------
+            :class:`TensorData` : new tensor data
 
         """
         f = tensor_reduce(fn)
@@ -246,9 +262,11 @@ def tensor_map(
       broadcast. (`in_shape` must be smaller than `out_shape`).
 
     Args:
+    ----
         fn: function from float-to-float to apply
 
     Returns:
+    -------
         Tensor map function.
 
     """
@@ -261,8 +279,39 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        """Maps a function over the elements of a tensor, possibly broadcasting.
+
+        This function applies a given function to each element of the input tensor,
+        possibly broadcasting the input tensor to match the shape of the output tensor.
+        It iterates over the elements of the output tensor, calculates the corresponding
+        index in the input tensor using broadcasting rules, and applies the function to
+        the value at that index.
+
+        Args:
+        ----
+            out (Storage): The storage for the output tensor.
+            out_shape (Shape): The shape of the output tensor.
+            out_strides (Strides): The strides of the output tensor.
+            in_storage (Storage): The storage for the input tensor.
+            in_shape (Shape): The shape of the input tensor.
+            in_strides (Strides): The strides of the input tensor.
+
+        """
+        total_elements = 1
+        for dim in out_shape:
+            total_elements *= dim
+
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        in_index = np.zeros(len(in_shape), dtype=np.int32)
+
+        for i in range(total_elements):
+            ordinal = i
+            to_index(ordinal, out_shape, out_index)
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            in_position = index_to_position(in_index, in_strides)
+            out_position = index_to_position(out_index, out_strides)
+            # Apply the function and store the result in the output storage
+            out[out_position] = fn(in_storage[in_position])
 
     return _map
 
@@ -288,9 +337,11 @@ def tensor_zip(
       and `b_shape` broadcast to `out_shape`.
 
     Args:
+    ----
         fn: function mapping two floats to float to apply
 
     Returns:
+    -------
         Tensor zip function.
 
     """
@@ -306,8 +357,37 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        """Performs element-wise operations on two tensors with possibly different strides and broadcasts them to a common shape.
+
+        Args:
+        ----
+            out (Storage): The output storage where the result of the operation will be stored.
+            out_shape (Shape): The shape of the output tensor.
+            out_strides (Strides): The strides of the output tensor.
+            a_storage (Storage): The storage of the first input tensor.
+            a_shape (Shape): The shape of the first input tensor.
+            a_strides (Strides): The strides of the first input tensor.
+            b_storage (Storage): The storage of the second input tensor.
+            b_shape (Shape): The shape of the second input tensor.
+            b_strides (Strides): The strides of the second input tensor.
+
+        """
+        total_elements = 1
+        for dim in out_shape:
+            total_elements *= dim
+
+        a_index = np.zeros(len(a_shape), dtype=np.int32)
+        b_index = np.zeros(len(b_shape), dtype=np.int32)
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        for i in range(total_elements):
+            ordinal = i
+            to_index(ordinal, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            a_position = index_to_position(a_index, a_strides)
+            b_position = index_to_position(b_index, b_strides)
+            out_position = index_to_position(out_index, out_strides)
+            out[out_position] = fn(a_storage[a_position], b_storage[b_position])
 
     return _zip
 
@@ -321,9 +401,11 @@ def tensor_reduce(
        except with `reduce_dim` turned to size `1`
 
     Args:
+    ----
         fn: reduction function mapping two floats to float
 
     Returns:
+    -------
         Tensor reduce function.
 
     """
@@ -337,8 +419,39 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        """Performs tensor reduction operation along a specified dimension.
+
+        This function applies a reduction operation to the input tensor `a_storage` along the dimension specified by `reduce_dim`. The result is stored in the output tensor `out`.
+
+        Args:
+        ----
+            out (Storage): The output tensor where the reduction result will be stored.
+            out_shape (Shape): The shape of the output tensor.
+            out_strides (Strides): The strides of the output tensor.
+            a_storage (Storage): The input tensor to be reduced.
+            a_shape (Shape): The shape of the input tensor.
+            a_strides (Strides): The strides of the input tensor.
+            reduce_dim (int): The dimension along which the reduction operation is performed.
+
+        """
+        total_elements = 1
+        for dim in a_shape:
+            total_elements *= dim
+
+        a_index = np.zeros(len(a_shape), dtype=np.int32)
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+
+        for i in range(total_elements):
+            ordinal = i
+            to_index(ordinal, a_shape, a_index)
+            broadcast_index(a_index, a_shape, out_shape, out_index)
+            a_position = index_to_position(a_index, a_strides)
+            out_position = index_to_position(out_index, out_strides)
+
+            if out[out_position] == 0:
+                out[out_position] = a_storage[a_position]
+            else:
+                out[out_position] = fn(a_storage[a_position], out[out_position])
 
     return _reduce
 

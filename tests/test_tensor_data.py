@@ -84,6 +84,7 @@ def test_permute(data: DataObject) -> None:
     ind = data.draw(indices(minitorch.Tensor(td, backend=SimpleBackend)))
     td_rev = td.permute(*list(reversed(range(td.dims))))
     assert td.index(ind) == td_rev.index(tuple(reversed(ind)))
+    # print(td.shape)
 
     td2 = td_rev.permute(*list(reversed(range(td_rev.dims))))
     assert td.index(ind) == td2.index(ind)
