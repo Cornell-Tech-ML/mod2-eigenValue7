@@ -6,6 +6,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import numpy as np
+from sympy import dict_merge
 
 from . import operators
 from .autodiff import Context, Variable, backpropagate
@@ -87,6 +88,8 @@ class Tensor:
         self.history = back
         self.backend = backend
         self.grad = None
+        self.size = len(self._tensor._storage)
+        self.dims = len(self._tensor._shape)
         if name is not None:
             self.name = name
         else:
@@ -243,6 +246,7 @@ class Tensor:
 
     @property
     def parents(self) -> Iterable[Variable]:
+        
         assert self.history is not None
         return self.history.inputs
 
@@ -253,6 +257,7 @@ class Tensor:
         assert h.ctx is not None
 
         x = h.last_fn._backward(h.ctx, d_output)
+
         assert len(x) == len(h.inputs), f"Bug in function {h.last_fn}"
         return [
             (inp, inp.expand(self._ensure_tensor(d_in)))
@@ -285,3 +290,284 @@ class Tensor:
 
     # Functions
     # TODO: Implement for Task 2.3.
+    def __add__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise addition of two tensors.
+
+        This method performs element-wise addition of the current tensor with another tensor or a scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to be added to the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise addition.
+        """
+        return Add.apply(self, self._ensure_tensor(a))
+    
+    def __sub__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise subtraction of two tensors.
+
+        This method performs element-wise subtraction of the current tensor with another tensor or a scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to be subtracted from the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise subtraction.
+        """
+        return Add.apply(self,Neg.apply(self._ensure_tensor(a)))
+    
+    def __mul__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise multiplication of two tensors.
+
+        This method performs element-wise multiplication of the current tensor with another tensor or a scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to be multiplied with the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise multiplication.
+        """
+        return Mul.apply(self, self._ensure_tensor(a))
+
+    def __lt__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise less than comparison of two tensors.
+
+        This method performs element-wise comparison of the current tensor with another tensor or a scalar value to determine if the elements of the current tensor are less than the corresponding elements of the other tensor or scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to compare with the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise comparison, where each element is True if the corresponding element in the current tensor is less than the corresponding element in `a`, and False otherwise.
+        """
+        return LT.apply(self, self._ensure_tensor(a))
+           
+    def __eq__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise equality comparison of two tensors.
+
+        This method performs element-wise comparison of the current tensor with another tensor or a scalar value to determine if the elements of the current tensor are equal to the corresponding elements of the other tensor or scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to compare with the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise comparison, where each element is True if the corresponding element in the current tensor is equal to the corresponding element in `a`, and False otherwise.
+        """
+        return EQ.apply(self, self._ensure_tensor(a))
+
+    def __gt__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise greater than comparison of two tensors.
+
+        This method performs element-wise comparison of the current tensor with another tensor or a scalar value to determine if the elements of the current tensor are greater than the corresponding elements of the other tensor or scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to compare with the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise comparison, where each element is True if the corresponding element in the current tensor is greater than the corresponding element in `a`, and False otherwise.
+        """
+        return LT.apply(self._ensure_tensor(a), self)
+    
+    def __neg__(self) -> Tensor:
+        """
+        Element-wise negation of a tensor.
+
+        This method returns a new tensor with each element negated. It supports broadcasting for tensors with different shapes.
+
+        Returns:
+            Tensor: The result of the element-wise negation, where each element is the negated value of the corresponding element in the current tensor.
+        """
+        return Neg.apply(self)
+    
+    def __radd__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise addition of two tensors.
+
+        This method performs element-wise addition of the current tensor with another tensor or a scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to add to the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise addition, where each element is the sum of the corresponding elements in the current tensor and `a`.
+        """
+        return Add.apply(self, self._ensure_tensor(a))
+    
+    def __rmul__(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise multiplication of two tensors.
+
+        This method performs element-wise multiplication of the current tensor with another tensor or a scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to multiply with the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise multiplication, where each element is the product of the corresponding elements in the current tensor and `a`.
+        """
+        return Mul.apply(self, self._ensure_tensor(a))
+    
+    def all(self, a: Optional[TensorLike] = None) -> Tensor:
+        """
+        Element-wise logical AND operation.
+
+        This method performs element-wise logical AND operation of the current tensor with another tensor or a scalar value. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike, optional): The tensor or scalar value to perform the logical AND operation with the current tensor. Defaults to None.
+
+        Returns:
+            Tensor: The result of the element-wise logical AND operation, where each element is True if the corresponding elements in the current tensor and `a` are both True, and False otherwise.
+        """
+        if a:
+            return All.apply(self, self._ensure_tensor(a))
+        else:
+            return All.apply(self, Tensor.make([-1], (1,), backend=self.backend))
+        
+    def is_close(self, a: TensorLike) -> Tensor:
+        """
+        Element-wise comparison for closeness.
+
+        This method performs element-wise comparison of the current tensor with another tensor or a scalar value to check if they are close within a certain tolerance. It supports broadcasting for tensors with different shapes.
+
+        Args:
+            a (TensorLike): The tensor or scalar value to compare with the current tensor for closeness.
+
+        Returns:
+            Tensor: The result of the element-wise comparison, where each element is True if the corresponding elements in the current tensor and `a` are close within the tolerance, and False otherwise.
+        """
+        return IsClose.apply(self, self._ensure_tensor(a))
+    
+    def sigmoid(self) -> Tensor:
+        """
+        Element-wise sigmoid function.
+
+        This method computes the element-wise sigmoid of the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise sigmoid operation.
+        """
+        return Sigmoid.apply(self)
+           
+    def relu(self) -> Tensor:
+        """
+        Element-wise ReLU (Rectified Linear Unit) function.
+
+        This method computes the element-wise ReLU of the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise ReLU operation.
+        """
+        return ReLU.apply(self)
+
+    def log(self) -> Tensor:
+        """
+        Element-wise natural logarithm function.
+
+        This method computes the element-wise natural logarithm of the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise natural logarithm operation.
+        """
+        return Log.apply(self)
+    
+    def exp(self) -> Tensor:
+        """
+        Element-wise exponential function.
+
+        This method computes the element-wise exponential of the current tensor.
+
+        Returns:
+            Tensor: The result of the element-wise exponential operation.
+        """
+        return Exp.apply(self)
+
+    def sum(self, dim: Optional[int] = None) -> Tensor:
+        """
+        Element-wise sum function.
+
+        This method computes the element-wise sum of the current tensor.
+
+        Args:
+            dim (Optional[int]): The dimension along which the reduction operation is performed. If None, the operation is performed over all elements.
+
+        Returns:
+            Tensor: The result of the element-wise sum operation.
+        """
+        if dim is None: 
+            return Sum.apply(self, Tensor.make([-1], (1,), backend=self.backend) )
+        else: 
+            return Sum.apply(self, Tensor.make([dim], (1,), backend=self.backend))
+
+
+    def mean(self, dim: Optional[Tensor] = None) -> Tensor:
+        """
+        Computes the mean of the tensor along the specified dimension(s).
+
+        This method calculates the mean of the elements in the current tensor along the dimension(s) specified by `dim`. If `dim` is None, the mean is computed over all elements in the tensor.
+
+        Args:
+            dim (Optional[int] or Optional[Tensor]): The dimension(s) along which the mean is computed. If None, the mean is computed over all elements.
+
+        Returns:
+            Tensor: The result of the mean operation.
+        """
+        if dim: 
+            return Mul.apply(Neg.apply(Sum.apply(self, dim)))
+        else: 
+            return self
+        
+    def permute(self, *dim: Optional[int]) -> Tensor:
+        """
+        Permute the dimensions of the tensor.
+
+        This method permutes the dimensions of the current tensor according to the specified order `dim`.
+
+        Args:
+            dim (Optional[int]): The new order of the dimensions.
+
+        Returns:
+            Tensor: The permuted tensor.
+        """
+        if dim:
+            # dim_list = list(i for i in dim)
+            dim_1 = []
+            for i in dim: 
+                dim_1.append(i)
+            return Permute.apply(self, Tensor.make(dim_1, (len(dim_1),), backend = self.backend))
+        else: 
+            return self
+
+    def view(self, *dim: Optional[int]) -> Tensor:
+        """
+        Reshapes the tensor to the specified dimensions.
+
+        This method reshapes the current tensor to match the specified dimensions `dim`. If `dim` is not provided, the tensor is not reshaped.
+
+        Args:
+            dim (Optional[int]): The new dimensions of the tensor.
+
+        Returns:
+            Tensor: The reshaped tensor.
+        """
+        if dim:
+            dim_1 = []
+            for i in dim: 
+                dim_1.append(i)
+            return View.apply(self, Tensor.make(dim_1, (len(dim_1),), backend=self.backend))
+        else: 
+            return self
+
+    def zero_grad_(self) -> None: 
+        """
+        Clears the gradients of the tensor.
+
+        This method sets the gradient of the tensor to None, effectively clearing any previously accumulated gradients.
+        """
+        self.grad = None

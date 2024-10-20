@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from functools import reduce
 from typing import TYPE_CHECKING, Callable, Optional, Type
 
 import numpy as np
@@ -261,8 +262,37 @@ def tensor_map(
         in_shape: Shape,
         in_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        """Maps a function over the elements of a tensor, possibly broadcasting.
+
+        This function applies a given function to each element of the input tensor,
+        possibly broadcasting the input tensor to match the shape of the output tensor.
+        It iterates over the elements of the output tensor, calculates the corresponding
+        index in the input tensor using broadcasting rules, and applies the function to
+        the value at that index.
+
+        Args:
+            out (Storage): The storage for the output tensor.
+            out_shape (Shape): The shape of the output tensor.
+            out_strides (Strides): The strides of the output tensor.
+            in_storage (Storage): The storage for the input tensor.
+            in_shape (Shape): The shape of the input tensor.
+            in_strides (Strides): The strides of the input tensor.
+        """
+        total_elements = 1
+        for dim in out_shape:
+            total_elements *= dim
+
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        in_index = np.zeros(len(in_shape), dtype=np.int32)
+
+        for i in range(total_elements):
+            ordinal = i
+            to_index(ordinal, out_shape, out_index)
+            broadcast_index(out_index, out_shape, in_shape, in_index)
+            in_position = index_to_position(in_index, in_strides)
+            out_position = index_to_position(out_index, out_strides)
+            # Apply the function and store the result in the output storage
+            out[out_position] = fn(in_storage[in_position])
 
     return _map
 
@@ -306,8 +336,35 @@ def tensor_zip(
         b_shape: Shape,
         b_strides: Strides,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        """Performs element-wise operations on two tensors with possibly different strides and broadcasts them to a common shape.
+
+        Args:
+            out (Storage): The output storage where the result of the operation will be stored.
+            out_shape (Shape): The shape of the output tensor.
+            out_strides (Strides): The strides of the output tensor.
+            a_storage (Storage): The storage of the first input tensor.
+            a_shape (Shape): The shape of the first input tensor.
+            a_strides (Strides): The strides of the first input tensor.
+            b_storage (Storage): The storage of the second input tensor.
+            b_shape (Shape): The shape of the second input tensor.
+            b_strides (Strides): The strides of the second input tensor.
+        """
+        total_elements = 1
+        for dim in out_shape:
+            total_elements *= dim
+
+        a_index = np.zeros(len(a_shape), dtype=np.int32)
+        b_index = np.zeros(len(b_shape), dtype=np.int32)
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+        for i in range(total_elements):
+            ordinal = i
+            to_index(ordinal, out_shape, out_index)
+            broadcast_index(out_index, out_shape, a_shape, a_index)
+            broadcast_index(out_index, out_shape, b_shape, b_index)
+            a_position = index_to_position(a_index, a_strides)
+            b_position = index_to_position(b_index, b_strides)
+            out_position = index_to_position(out_index, out_strides)
+            out[out_position] = fn(a_storage[a_position], b_storage[b_position])
 
     return _zip
 
@@ -337,8 +394,39 @@ def tensor_reduce(
         a_strides: Strides,
         reduce_dim: int,
     ) -> None:
-        # TODO: Implement for Task 2.3.
-        raise NotImplementedError("Need to implement for Task 2.3")
+        """
+        Performs tensor reduction operation along a specified dimension.
+
+        This function applies a reduction operation to the input tensor `a_storage` along the dimension specified by `reduce_dim`. The result is stored in the output tensor `out`.
+
+        Args:
+            out (Storage): The output tensor where the reduction result will be stored.
+            out_shape (Shape): The shape of the output tensor.
+            out_strides (Strides): The strides of the output tensor.
+            a_storage (Storage): The input tensor to be reduced.
+            a_shape (Shape): The shape of the input tensor.
+            a_strides (Strides): The strides of the input tensor.
+            reduce_dim (int): The dimension along which the reduction operation is performed.
+        """
+        total_elements = 1
+        for dim in a_shape:
+            total_elements *= dim
+
+        a_index = np.zeros(len(a_shape), dtype=np.int32)
+        out_index = np.zeros(len(out_shape), dtype=np.int32)
+
+        for i in range(total_elements):
+        
+            ordinal = i
+            to_index(ordinal, a_shape, a_index)
+            broadcast_index(a_index, a_shape, out_shape, out_index)
+            a_position = index_to_position(a_index, a_strides)
+            out_position = index_to_position(out_index, out_strides)
+            
+            if out[out_position] == 0: 
+                out[out_position] = a_storage[a_position]
+            else: 
+                out[out_position] = fn(a_storage[a_position], out[out_position])
 
     return _reduce
 

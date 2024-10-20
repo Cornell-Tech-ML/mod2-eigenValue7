@@ -176,7 +176,6 @@ def test_index() -> None:
 
 def test_fromnumpy() -> None:
     t = tensor([[2, 3, 4], [4, 5, 7]])
-    print(t)
     assert t.shape == (2, 3)
     n = t.to_numpy()
     t2 = tensor(n.tolist())
@@ -194,7 +193,6 @@ def test_reduce_forward_one_dim() -> None:
 
     # here 0 means to reduce the 0th dim, 3 -> nothing
     t_summed = t.sum(0)
-
     # shape (2)
     t_sum_expected = tensor([[11, 16]])
     assert t_summed.is_close(t_sum_expected).all().item()
@@ -223,5 +221,5 @@ def test_reduce_forward_all_dims() -> None:
 
     # shape (1, 1)
     t_summed_all_expected = tensor([27])
-
+    
     assert_close(t_summed_all[0], t_summed_all_expected[0])
