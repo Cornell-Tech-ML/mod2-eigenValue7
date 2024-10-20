@@ -28,9 +28,9 @@ class Network(minitorch.Module):
         The layers are then added to the network.
         """
         super().__init__()
-        self.layer1 = Linear(2, hidden_layers) 
-        self.layer2 = Linear(hidden_layers,hidden_layers)  
-        self.layer3 = Linear(hidden_layers, 1)  
+        self.layer1 = Linear(2, hidden_layers)
+        self.layer2 = Linear(hidden_layers,hidden_layers)
+        self.layer3 = Linear(hidden_layers, 1)
 
     def forward(self, x):
         """
@@ -89,7 +89,7 @@ class Linear(minitorch.Module):
         d = c.view(out_size,batch_size).permute(1,0)
         e = d + self.bias.value
         return e
-    
+
 def default_log_fn(epoch, total_loss, correct, losses):
     print("Epoch ", epoch, " loss ", total_loss, "correct", correct)
 

@@ -3,17 +3,16 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Iterable, List, Tuple, Protocol
 
+
 ## Task 1.1
 # Central Difference calculation
-
 def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) -> Any:
-    r"""
-    Computes an approximation to the derivative of `f` with respect to one arg.
+    r"""Computes an approximation to the derivative of `f` with respect to one arg.
 
     See :doc:`derivative` or https://en.wikipedia.org/wiki/Finite_difference for more details.
 
     Args:
-    -----
+    ----
         f: arbitrary function from n-scalar args to one value
         *vals: n-float values $x_0 \ldots x_{n-1}$
         arg: the number $i$ of the arg to compute the derivative
@@ -36,22 +35,82 @@ def central_difference(f: Any, *vals: Any, arg: int = 0, epsilon: float = 1e-6) 
 
 variable_count = 1
 
+
 class Variable(Protocol):
-    def accumulate_derivative(self, x: Any) -> None: ...
+    def accumulate_derivative(self, x: Any) -> None:
+        """Accumulates the derivative of the output with respect to this variable.
+
+        Args:
+        ----
+            x (Any): The derivative to accumulate.
+
+        Returns:
+        -------
+            None
+
+        """
+        ...
 
     @property
-    def unique_id(self) -> int: ...
+    def unique_id(self) -> int:
+        """Returns a unique identifier for this variable.
+
+        This property is used to identify each variable uniquely within the computation graph.
+
+        Returns
+        -------
+            int: A unique identifier for this variable.
+
+        """
+        ...
+
+    def is_leaf(self) -> bool:
+        """Check if it's leaf or not
+
+        Returns
+        -------
+            bool: returns if it's leaf
+
+        """
+        ...
+
+    def is_constant(self) -> bool:
+        """Returns True if this variable is a constant (i.e., has no history).
+
+        A constant variable is one that is not part of the computation graph
+        and does not require gradient computation.
+
+        Returns
+        -------
+            bool: True if the variable is constant, False otherwise.
+
+        """
+        ...
 
     @property
-    def is_leaf(self) -> bool: ...
+    def parents(self) -> Iterable["Variable"]:
+        """Returns parents
 
-    @property
-    def is_constant(self) -> bool: ...
+        Returns
+        -------
+            Iterable["Variable"]: return all the parents
 
-    @property
-    def parents(self) -> Iterable[Variable]: ...
+        """
+        ...
 
-    def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]: ...
+    def chain_rule(self, d_output: Any) -> Iterable[Tuple[Variable, Any]]:
+        """Returns chain rules
+
+        Args:
+        ----
+            d_output (Any): last derivative
+
+        Returns:
+        -------
+            Iterable[Tuple[Variable, Any]]: Returns chain rules
+
+        """
+        ...
 
 
 def topological_sort(variable: Variable) -> Iterable[Variable]:
@@ -86,16 +145,17 @@ def topological_sort(variable: Variable) -> Iterable[Variable]:
 
 
 def backpropagate(variable: Variable, deriv: Any) -> None:
-    """Runs backpropagation on the computation graph in order to
-    compute derivatives for the leave nodes.
+    """Performs backpropagation on the computation graph starting from the given variable.
 
     Args:
     ----
-        variable: The right-most variable
-        deriv : Its derivative that we want to propagate backward to the leaves.
+        variable (Variable): The variable to start backpropagation from.
+        deriv (Any): The derivative to start backpropagation with.
 
-    No return. Should write to its results to the derivative values of each leaf through
-    `accumulate_derivative`.
+    Returns:
+    -------
+        None: This function modifies the variables in the computation graph in-place.
+
     """
     # ASSIGN1.4
     queue = topological_sort(variable)
@@ -129,4 +189,5 @@ class Context:
 
     @property
     def saved_tensors(self) -> Tuple[Any, ...]:
+        """Return the saved tensors for backward pass."""
         return self.saved_values

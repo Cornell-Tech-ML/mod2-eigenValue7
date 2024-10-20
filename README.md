@@ -21,7 +21,7 @@ The files that will be synced are:
 # Simple
 
 Epoch 500/500. Time per epoch: 0.039s. Time left: 0.00s.
-number of points: 50, LR: 0.1, 
+number of points: 50, LR: 0.1,
 
 Epoch: 0/500, loss: 0, correct: 0
 Epoch: 0/500, loss: 0, correct: 0
@@ -279,7 +279,7 @@ Epoch: 780/800, loss: 7.479363457439376, correct: 150
 Epoch: 790/800, loss: 6.579022847421649, correct: 150
 Epoch: 800/800, loss: 5.908137399247399, correct: 150
 
-#xor 
+#xor
 number of points: 100, LR: 1.0, Hidden Layers: 4.0
 Epoch 500/500. Time per epoch: 0.160s. Time left: 0.00s.
 
