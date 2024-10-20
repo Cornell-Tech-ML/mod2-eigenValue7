@@ -18,7 +18,7 @@ The files that will be synced are:
 
         minitorch/operators.py minitorch/module.py minitorch/autodiff.py minitorch/scalar.py minitorch/scalar_functions.py minitorch/module.py project/run_manual.py project/run_scalar.py project/datasets.py
 
-* Simple
+# Simple
 ![Alt text](image/simple.png)
 - Epoch 1000/1000. Time per epoch: 0.107s. Time left: 0.00s.
 - number of points: 150, LR: 1.0,
@@ -125,7 +125,7 @@ The files that will be synced are:
 - Epoch: 990/1000, loss: 5.779598283236212, correct: 146
 - Epoch: 1000/1000, loss: 5.757923518365383, correct: 146
 
-* Diag
+# Diag
 ![Alt text](image/diag.png)
 - number of points: 150, LR: 1.0
 - Epoch 1000/1000. Time per epoch: 0.105s. Time left: 0.00s.
@@ -232,7 +232,7 @@ The files that will be synced are:
 - Epoch: 990/1000, loss: 0.7981747702718931, correct: 150
 - Epoch: 1000/1000, loss: 0.782631164682402, correct: 150
 
-* Split
+# Split
 ![Alt text](image/split.png)
 - number of points: 150, LR: 1.0
 - Epoch 800/800. Time per epoch: 0.105s. Time left: 0.00s.
@@ -319,7 +319,7 @@ The files that will be synced are:
 - Epoch: 790/800, loss: 6.579022847421649, correct: 150
 - Epoch: 800/800, loss: 5.908137399247399, correct: 150
 
-* Xor
+# Xor
 ![Alt text](image/xor.png)
 - number of points: 100, LR: 1.0, Hidden Layers: 4.0
 - Epoch 500/500. Time per epoch: 0.160s. Time left: 0.00s.
